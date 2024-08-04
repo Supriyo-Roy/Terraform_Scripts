@@ -1,4 +1,4 @@
-resource "aws_eks_cluster" "demo-cluster" {
+resource "aws_eks_cluster" "eks" {
 
   count    = var.is-eks-cluster-enabled == true ? 1 : 0
   name     = var.cluster-name
@@ -12,7 +12,6 @@ resource "aws_eks_cluster" "demo-cluster" {
     security_group_ids      = [aws_security_group.eks-cluster-sg.id]
   }
 
-
   access_config {
     authentication_mode                         = "CONFIG_MAP"
     bootstrap_cluster_creator_admin_permissions = true
@@ -25,14 +24,14 @@ resource "aws_eks_cluster" "demo-cluster" {
 }
 
 # OIDC Provider
+
+data "tls_certificate" "eks-certificate" {
+  url = aws_eks_cluster.eks[0].identity[0].oidc[0].issuer
+}
 resource "aws_iam_openid_connect_provider" "eks-oidc" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.eks-certificate.certificates[0].sha1_fingerprint]
   url             = data.tls_certificate.eks-certificate.url
-}
-
-data "tls_certificate" "eks-certificate" {
-  url = aws_eks_cluster.eks[0].identity[0].oidc[0].issuer
 }
 
 
