@@ -31,3 +31,5 @@ This project includes Sentinel policies to enforce:
 2. **Node Label Requirement**: Ensuring all Kubernetes nodes have at least one label.
 
 [How to integrate github with Terraform cloud ](https://medium.com/techbeatly/automating-cloud-infrastructure-with-terraform-cloud-a-deep-dive-into-its-capabilities-9bc9d0aff929)
+
+[Reference](https://github.com/AmanPathak-DevOps/EKS-Terraform-GitHub-Actions)
