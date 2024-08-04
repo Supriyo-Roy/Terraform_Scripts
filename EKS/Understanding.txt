@@ -1,0 +1,193 @@
+IP address:-
+What this CIDR Means ?
+An IPv4 address is a 32-bit number, typically written in decimal format as four octets (e.g., 192.168.1.1). Each octet is 8 bits, making up the total of 32 bits.
+Also IP adresses is divided , like 1st part shows the network portion , 2nd part denotes the host portion(devices)
+so 10.0.0.0/16 , 255.255.0.0 it means that first 16 bits of 32 bits are reserved for Network part but the other 16 bits are host so 2^16 = 65536 ips
+
+10.0.0.0/24
+Prefix Length: /24 means the first 24 bits are used for the network portion.
+Subnet Mask: This corresponds to 255.255.255.0 in decimal notation.
+To calculate the number of IP addresses:
+
+Total Bits: IPv4 has 32 bits.
+Host Bits: 32 - 24 = 8 bits for host addresses.
+Number of Addresses: 
+2^8 = 256
+
+---------------------------------------------
+
+
+resource "aws_nat_gateway" "example" {
+  allocation_id = aws_eip.example.id
+  subnet_id     = aws_subnet.example.id
+
+  tags = {
+    Name = "gw NAT"
+  }
+}
+
+what is eip, why it is needed for natgeteway
+
+A NAT Gateway allows instances in a private subnet to connect to the internet or other AWS services, but it prevents the internet from initiating a connection with those instances.
+
+EIP (Elastic IP):
+
+Definition: 
+An Elastic IP address is a static, public IPv4 address designed for dynamic cloud computing. Unlike a regular public IP address, an Elastic IP address is allocated to your AWS account and remains associated with your account until you explicitly release it.
+Purpose: Elastic IP addresses are particularly useful for masking the failure of an instance or software by rapidly remapping the address to another instance in your account.
+
+Why an EIP is Needed for a NAT Gateway
+Public IP Requirement: A NAT Gateway must have a public IP address to allow instances in private subnets to communicate with the internet. The EIP provides this public IP address.
+Static IP: The Elastic IP ensures that the NAT Gateway always has the same public IP address, which is essential for consistent access and for configuring security groups, route tables, and firewall rules.
+
+Working -->
+
+When an instance in the private subnet initiates a connection to the internet, the traffic is routed to the NAT Gateway.
+The NAT Gateway translates the instance's private IP address to its own public IP address (the EIP) and sends the traffic to the internet.
+Incoming Traffic:
+
+The response from the internet is sent to the NAT Gateway's public IP address (the EIP).
+The NAT Gateway translates this public IP address back to the instance's private IP address and forwards the response to the instance in the private subnet.
+
+
+----------------------------
+
+resource "aws_route_table" "private-routing-rule" {
+  vpc_id = aws_vpc.first_vpc.id
+
+  route{
+      cidr_block                 = "0.0.0.0/0"
+      nat_gateway_id             = aws_nat_gateway.natgateway.id
+    }
+  tags = {
+    Name = "private-routing-rule"
+  }
+}
+
+
+Explanation: 
+The route table entry with cidr_block = "0.0.0.0/0" and nat_gateway_id = aws_nat_gateway.natgateway.id tells AWS to send all traffic from instances in the associated subnet that is destined for the internet (any IP address) through the NAT Gateway.
+
+--------------------------------
+
+EKS
+
+endpoint_private_access = false (Controls whether the Amazon EKS API server endpoint is accessible from within the VPC.)
+endpoint_public_access = true (Determines whether the EKS API server endpoint is accessible from outside the VPC (publicly).)
+
+Addons:-
+
+Detailed Explanation of Each Add-On
+
+1. coredns
+
+Purpose:
+CoreDNS is a flexible, extensible DNS server that can serve as the DNS server for Kubernetes clusters. It is responsible for resolving DNS names to IP addresses for Kubernetes services, enabling service discovery within the cluster.
+
+Functionality:
+
+Service Discovery: Allows pods to discover and communicate with other services in the cluster using DNS names.
+DNS Resolution: Resolves internal cluster DNS names and external names.
+Configuration: Can be configured with custom DNS policies and plugins to extend its functionality.
+Example:
+When a pod wants to connect to a service named my-service in the default namespace, it can simply use the DNS name my-service.default.svc.cluster.local, and CoreDNS will resolve it to the corresponding service IP address.
+
+2. kube-proxy
+Purpose:
+kube-proxy is a network proxy that runs on each node in the Kubernetes cluster. It is responsible for maintaining network rules on nodes, which enable communication to pods from inside or outside of the cluster.
+
+Functionality:
+
+Load Balancing: Distributes network traffic among the various pods in a service.
+Networking: Manages the network rules (iptables, IPVS, etc.) to route traffic correctly.
+Service Discovery: Ensures that traffic to Kubernetes services is properly forwarded to the backend pods.
+Example:
+When an external request hits a Kubernetes service, kube-proxy ensures that the request is forwarded to one of the pods backing that service.
+
+3. vpc-cni
+Purpose:
+The Amazon VPC CNI (Container Network Interface) plugin allows Kubernetes pods to have the same IP address inside the pod as they do on the VPC network. This simplifies network configuration and management by integrating Kubernetes networking with Amazon VPC networking.
+
+Functionality:
+
+IP Address Management: Allocates VPC IP addresses to pods.
+Pod Networking: Ensures that pods can communicate with each other and with external services using VPC networking.
+Performance: Enhances network performance by leveraging the underlying VPC infrastructure.
+Example:
+With the VPC CNI plugin, each pod receives a VPC IP address, allowing seamless integration with other AWS services and simplifying security group management.
+
+Configuration
+The most_recent = true setting for each add-on ensures that the most recent version of the add-on available in the EKS repository is installed. This is important for:
+
+Security: Using the latest versions helps protect against known vulnerabilities.
+Features: The latest versions often come with new features and improvements.
+Bug Fixes: Ensures that any bugs found in previous versions are fixed.
+
+What is the aws-ebs-csi-driver?
+
+The aws-ebs-csi-driver is a Container Storage Interface (CSI) driver that allows Amazon Elastic Block Store (EBS) volumes to be used as persistent storage in Kubernetes clusters running on AWS. CSI is a standardized way to expose storage systems to containerized workloads on Kubernetes.
+
+Use and Benefits of the aws-ebs-csi-driver
+Persistent Storage for Pods:
+
+The driver allows Kubernetes pods to use EBS volumes as persistent storage. This means that data stored in EBS volumes persists beyond the life of individual pods and can be reused by other pods.
+Dynamic Provisioning:
+
+It supports dynamic provisioning of EBS volumes. When a pod requests storage, the CSI driver automatically provisions an EBS volume to satisfy the request, without the need for pre-provisioned volumes.
+Storage Classes:
+
+Kubernetes storage classes can be used with the driver to define different types of storage (e.g., standard, gp2, io1) and their parameters, allowing you to tailor storage to the needs of your workloads.
+Volume Snapshots:
+
+The driver supports creating snapshots of EBS volumes, which can be used for backup and restore operations.
+Flexibility and Scalability:
+
+By using EBS as the underlying storage, you can leverage AWS’s scalable and high-performance storage services. The driver integrates seamlessly with Kubernetes, providing flexibility in how storage is managed and used within the cluster.
+
+
+
+access_config Block in EKS Cluster Configuration :-
+
+  access_config {
+    authentication_mode                         = "CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true
+  }
+
+This part of your EKS cluster configuration deals with how users get access to the cluster and what initial permissions the creator has.  
+
+Using CONFIG_MAP for Authentication:
+
+Simplifies management: Instead of setting up access rules through AWS IAM alone, you can manage them directly in Kubernetes.
+Customizable access: You can define who gets what level of access in a detailed and flexible way.
+
+Bootstrap Creator Admin Permissions:
+
+Initial setup: The person who sets up the cluster can create users, set permissions, and configure the cluster.
+Full control at the start: Ensures that the cluster creator can make all necessary adjustments without restrictions.
+
+
+resource "aws_iam_openid_connect_provider" "eks-oidc" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks-certificate.certificates[0].sha1_fingerprint]
+  url             = data.tls_certificate.eks-certificate.url
+}
+
+
+client_id_list
+Purpose: Defines the clients that are allowed to use this OIDC provider. These clients can request temporary security credentials from AWS using the OIDC tokens.
+["sts.amazonaws.com"]: This specifies that the Security Token Service (STS) is the client allowed to use this OIDC provider. STS is a service that issues temporary security credentials, and allowing it here means that the OIDC provider can be used to obtain such credentials.
+
+thumbprint_list
+Purpose: Provides security by ensuring that AWS only trusts certificates issued by a specific certificate authority (CA) that you have defined. This helps prevent man-in-the-middle attacks where an attacker might try to impersonate the OIDC provider.
+data.tls_certificate.eks-certificate.certificates[0].sha1_fingerprint: This is a reference to the SHA-1 fingerprint of the TLS certificate associated with the OIDC provider. The data.tls_certificate.eks-certificate refers to a data source (presumably defined elsewhere in your Terraform configuration) that retrieves the TLS certificate. The certificates[0].sha1_fingerprint gets the SHA-1 fingerprint of the first certificate in the list. This fingerprint is used to validate that the certificate presented by the OIDC provider matches the expected one.
+
+url
+Purpose: Specifies the URL of the OIDC provider. This URL is where AWS will go to verify tokens.
+data.tls_certificate.eks-certificate.url: This refers to the URL of the OIDC provider as retrieved from the TLS certificate data source. It tells AWS where to find the OIDC provider to authenticate tokens.
+
+
+
+
+Good Links to refer :-
+https://medium.com/@ankit.wal/the-how-of-iam-roles-for-service-accounts-irsa-on-aws-eks-3d76badb8942 (IRSA-to know about how SA is used by pods to access aws api)
+https://tanmay-bhat.medium.com/scheduling-pods-in-both-spot-and-on-demand-nodes-in-eks-81c751495599 (Scheduling pods in SPOT and ON-DEMAND nodes)

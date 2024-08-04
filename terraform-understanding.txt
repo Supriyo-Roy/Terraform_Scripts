@@ -1,0 +1,8 @@
+variables.tf vs terraform.tfvars
+
+variables.tf: Defines the structure, type, and default values of variables.
+.tfvars: Assigns specific values to those variables.
+
+Data 
+
+In Terraform, a data block is used to define a data source, which allows you to fetch data from outside of Terraform, or from a different Terraform configuration, to use within your configuration. Data sources are read-only and provide information that can be used in your infrastructure definitions without changing the state.
