@@ -25,3 +25,4 @@ nodes_have_labels = func() {
 main = rule {
     instance_types_allowed() and nodes_have_labels()
 }
+
