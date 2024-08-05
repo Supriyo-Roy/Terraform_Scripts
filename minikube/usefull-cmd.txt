@@ -1,0 +1,4 @@
+Check Current Context: kubectl config current-context
+get all context: kubectl config get-contexts
+Get Detailed Information of Current Context: kubectl config view --minify
+If you want to switch to a different context, you can use the following command: kubectl config use-context <context-name>
